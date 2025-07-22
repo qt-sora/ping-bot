@@ -73,7 +73,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "text/plain")
         self.end_headers()
-        self.wfile.write(b"✅ Bot Status: Online")
+        self.wfile.write(b"Bot Status: Online")
     
     def log_message(self, format, *args):
         # Use our modern logger instead of default stdout logging
