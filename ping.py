@@ -85,6 +85,11 @@ def run_http_server():
     logger.info("🚀 Keep-alive server launched on port 8080")
     httpd.serve_forever()
 
+# Error handler
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    """Handle errors"""
+    logger.error(f"❌ Exception while handling update: {context.error}")
+
 # Telegram Bot
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -114,6 +119,7 @@ def main():
     logger.info("🤖 Initializing Telegram bot...")
     tg_app = Application.builder().token(TOKEN).build()
     tg_app.add_handler(CommandHandler("start", start))
+    tg_app.add_error_handler(error_handler)
     tg_app.post_init = setup_commands
     
     logger.info("✨ Bot is ready! Listening for messages...")
