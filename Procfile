@@ -1,0 +1,1 @@
+start: python ping.py
