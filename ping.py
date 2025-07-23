@@ -37,12 +37,12 @@ async def start_server():
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     start_time = time.perf_counter()
-    message = await update.message.reply_text("⏱️ Measuring response time...")
+    message = await update.message.reply_text("🛰️ Pinging...")
     
     end_time = time.perf_counter()
     response_time = round((end_time - start_time) * 1000, 2)
     
-    await message.edit_text(f"🚀 Response time: {response_time}ms")
+    await message.edit_text(f"🏓 Pong! {response_time}ms")
 
 async def main():
     if not BOT_TOKEN:
