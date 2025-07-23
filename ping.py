@@ -1,55 +1,62 @@
-import logging
-import time
 import os
-import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
+import time
+import logging
+import asyncio
+import socket
 from telegram import Update, BotCommand
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or "YOUR_TELEGRAM_BOT_TOKEN"
+BOT_TOKEN = os.getenv('BOT_TOKEN', '')
+PORT = int(os.getenv('PORT', '8080'))
 
-# Dummy HTTP server using http.server
-class SimpleHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-type", "text/plain")
-        self.end_headers()
-        self.wfile.write(b"Bot Status: Online")
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+async def start_server():
     
-    def log_message(self, format, *args):
-        pass
-
-def run_http_server():
-    server_address = ('', 8080)
-    httpd = HTTPServer(server_address, SimpleHandler)
-    httpd.serve_forever()
-
-# Telegram Bot
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    start_time = time.time()
-    message = await update.message.reply_text("🛰️ Pinging...")
-    end_time = time.time()
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_socket.bind(('0.0.0.0', PORT))
+    server_socket.listen(1)
+    server_socket.setblocking(False)
     
-    ping_ms = round((end_time - start_time) * 1000, 2)
+    logger.info(f"UptimeRobot async server running on port {PORT}")
     
-    await message.edit_text(f"🏓 Pong! {ping_ms}ms")
+    while True:
+        try:
+            conn, addr = await asyncio.get_event_loop().sock_accept(server_socket)
+            await asyncio.get_event_loop().sock_sendall(conn, b'HTTP/1.1 200 OK\r\n\r\nOK')
+            conn.close()
+        except Exception:
+            await asyncio.sleep(0.1)
 
-async def setup_commands(app: Application):
-    commands = [BotCommand("start", "Check bot ping")]
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    start_time = time.perf_counter()
+    message = await update.message.reply_text("⏱️ Measuring response time...")
+    
+    end_time = time.perf_counter()
+    response_time = round((end_time - start_time) * 1000, 2)
+    
+    await message.edit_text(f"🚀 Response time: {response_time}ms")
+
+async def main():
+    if not BOT_TOKEN:
+        return
+    
+    asyncio.create_task(start_server())
+    
+    app = Application.builder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("start", start_command))
+    
+    commands = [
+        BotCommand("start", "Check bot response time")
+    ]
     await app.bot.set_my_commands(commands)
-
-def main():
-    # Start HTTP server in a thread
-    http_thread = threading.Thread(target=run_http_server)
-    http_thread.daemon = True
-    http_thread.start()
     
-    # Start Telegram bot
-    tg_app = Application.builder().token(TOKEN).build()
-    tg_app.add_handler(CommandHandler("start", start))
-    tg_app.post_init = setup_commands
-    
-    tg_app.run_polling()
+    await app.run_polling()
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    asyncio.run(main())
