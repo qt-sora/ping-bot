@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import time
 import logging
@@ -44,6 +46,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def main():
     if not BOT_TOKEN:
+        logger.error("BOT_TOKEN not found")
         return
     
     asyncio.create_task(start_server())
@@ -56,7 +59,17 @@ async def main():
     ]
     await app.bot.set_my_commands(commands)
     
-    await app.run_polling()
+    try:
+        await app.initialize()
+        await app.start()
+        await app.updater.start_polling()
+        await asyncio.Event().wait()
+    except KeyboardInterrupt:
+        logger.info("Shutting down...")
+    finally:
+        await app.updater.stop()
+        await app.stop()
+        await app.shutdown()
 
 if __name__ == '__main__':
     asyncio.run(main())
