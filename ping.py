@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import time
 import logging
@@ -33,7 +35,18 @@ async def main():
     ])
     
     logger.info("Starting bot...")
-    await app.run_polling()
+    
+    async with app:
+        await app.start()
+        await app.updater.start_polling()
+        
+        try:
+            await asyncio.Event().wait()
+        except KeyboardInterrupt:
+            logger.info("Shutting down...")
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped")
